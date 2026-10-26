@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SparkGrid Studio v6.0</title>
   <style>
-    body, html {
+    html, body {
       margin: 0;
       padding: 0;
       width: 100%;
@@ -14,16 +14,41 @@
       background-color: #050811;
     }
     iframe {
-      position: absolute;
+      position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       border: none;
     }
   </style>
 </head>
 <body>
-  <iframe src="https://script.google.com/macros/s/AKfycby-JHmtnhgZ7-osxiS01z2lF_8vDzeJAqr8exoeWWhHCrcHkRQcIXfBHqtRWBsC_MyG/exec" allow="bluetooth"></iframe>
+  <!-- Replace the src below with your full Google Apps Script /exec URL -->
+  <iframe id="sg-frame" src="PASTE_YOUR_FULL_GOOGLE_APPS_SCRIPT_EXEC_URL_HERE" allow="bluetooth *; microphone *; autoplay *"></iframe>
+
+  <script>
+    // Top-level Web Bluetooth Bridge (bypasses Google Apps Script iframe restriction)
+    window.addEventListener('message', async function(event) {
+      if (!event.data || event.data.type !== 'SPARKGRID_SCAN_BLE') return;
+      const frame = document.getElementById('sg-frame');
+      if (!navigator.bluetooth) {
+        frame.contentWindow.postMessage({ type: 'SPARKGRID_BLE_RESULT', error: 'Web Bluetooth is not supported in this browser.' }, '*');
+        return;
+      }
+      try {
+        const device = await navigator.bluetooth.requestDevice({
+          acceptAllDevices: true,
+          optionalServices: ['00010203-0405-0607-0809-0a0b0c0d1910']
+        });
+        frame.contentWindow.postMessage({
+          type: 'SPARKGRID_BLE_RESULT',
+          device: { id: device.id, name: device.name || 'Govee BLE Light' }
+        }, '*');
+      } catch (err) {
+        frame.contentWindow.postMessage({ type: 'SPARKGRID_BLE_RESULT', error: err.message }, '*');
+      }
+    });
+  </script>
 </body>
 </html>
